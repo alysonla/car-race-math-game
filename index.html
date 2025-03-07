@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Race - 3rd Grade Math Game</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+            background-color: #e6f7ff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #4a6bff;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .screen {
+            display: none;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        .button {
+            background-color: #4a6bff;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        
+        .button:hover {
+            background-color: #3a5aee;
+            transform: scale(1.05);
+        }
+        
+        .button:disabled {
+            background-color: #b3b3b3;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .difficulty-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .difficulty-button {
+            border: 2px solid #4a6bff;
+            background-color: white;
+            color: #4a6bff;
+            border-radius: 50px;
+            padding: 8px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        
+        .difficulty-button.selected {
+            background-color: #4a6bff;
+            color: white;
+        }
+        
+        .problem-container {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        
+        .answer-input {
+            font-size: 24px;
+            width: 80px;
+            text-align: center;
+            border: 2px solid #4a6bff;
+            border-radius: 8px;
+            padding: 8px;
+            margin-right: 10px;
+        }
+        
+        .race-track {
+            background-color: #e0e0e0;
+            height: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .car {
+            position: absolute;
+            left: 0;
+            height: 30px;
+            transition: left 0.5s;
+            display: flex;
+            align-items: center;
+            font-size: 24px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .stat {
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            padding: 8px 15px;
+            font-weight: bold;
+        }
+        
+        .score-stat {
+            background-color: #4caf50;
+            color: white;
+        }
+        
+        .time-stat {
+            background-color: #ff5252;
+            color: white;
+        }
+        
+        .feedback {
+            height: 24px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .correct {
+            color: #4caf50;
+        }
+        
+        .incorrect {
+            color: #ff5252;
+        }
+        
+        .final-score {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        
+        .message {
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <h1>Math Race!</h1>
+            <p>Solve math problems to move your car to the finish line!</p>
+            
+            <div>
+                <p class="choose-text">Choose difficulty:</p>
+                <div class="difficulty-buttons">
+                    <button id="easy-button" class="difficulty-button selected">Easy</button>
+                    <button id="medium-button" class="difficulty-button">Medium</button>
+                </div>
+            </div>
+            
+            <button id="start-button" class="button">Start Game!</button>
+        </div>
+        
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="stats">
+                <div class="stat score-stat">Score: <span id="score">0</span></div>
+                <div class="stat time-stat">Time: <span id="time">60</span>s</div>
+            </div>
+            
+            <div class="problem-container">
+                <div id="problem">5 + 3 = ?</div>
+                <input id="answer-input" type="number" class="answer-input" autofocus>
+                <button id="check-button" class="button">Check</button>
+            </div>
+            
+            <div id="feedback" class="feedback"></div>
+            
+            <div class="race-track">
+                <div id="car" class="car">🚗</div>
+            </div>
+        </div>
+        
+        <!-- End Screen -->
+        <div id="end-screen" class="screen">
+            <h1>Game Over!</h1>
+            <div class="final-score">Your score: <span id="final-score">0</span></div>
+            <div id="message" class="message"></div>
+            <button id="play-again-button" class="button">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let gameState = 'start';
+        let score = 0;
+        let timeLeft = 60;
+        let currentProblem = { question: '', answer: 0 };
+        let carPosition = 0;
+        let difficultyLevel = 'easy';
+        let timer;
+        
+        // DOM elements
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const easyButton = document.getElementById('easy-button');
+        const mediumButton = document.getElementById('medium-button');
+        const startButton = document.getElementById('start-button');
+        const scoreDisplay = document.getElementById('score');
+        const timeDisplay = document.getElementById('time');
+        const problemDisplay = document.getElementById('problem');
+        const answerInput = document.getElementById('answer-input');
+        const checkButton = document.getElementById('check-button');
+        const feedbackDisplay = document.getElementById('feedback');
+        const carElement = document.getElementById('car');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const messageDisplay = document.getElementById('message');
+        const playAgainButton = document.getElementById('play-again-button');
+        
+        // Event listeners
+        easyButton.addEventListener('click', () => setDifficulty('easy'));
+        mediumButton.addEventListener('click', () => setDifficulty('medium'));
+        startButton.addEventListener('click', startGame);
+        checkButton.addEventListener('click', submitAnswer);
+        playAgainButton.addEventListener('click', startGame);
+        answerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitAnswer();
+            }
+        });
+        
+        // Set difficulty function
+        function setDifficulty(level) {
+            difficultyLevel = level;
+            
+            // Update UI
+            if (level === 'easy') {
+                easyButton.classList.add('selected');
+                mediumButton.classList.remove('selected');
+            } else {
+                easyButton.classList.remove('selected');
+                mediumButton.classList.add('selected');
+            }
+        }
+        
+        // Generate problem function
+        function generateProblem() {
+            let num1, num2, operation, question, answer;
+            
+            if (difficultyLevel === 'easy') {
+                num1 = Math.floor(Math.random() * 10) + 1;
+                num2 = Math.floor(Math.random() * 10) + 1;
+                operation = Math.random() > 0.5 ? '+' : '-';
+                
+                // Make sure subtraction doesn't result in negative numbers
+                if (operation === '-' && num2 > num1) {
+                    [num1, num2] = [num2, num1];
+                }
+            } else {
+                num1 = Math.floor(Math.random() * 20) + 1;
+                num2 = Math.floor(Math.random() * 20) + 1;
+                operation = Math.random() > 0.5 ? '+' : '-';
+                
+                // Make sure subtraction doesn't result in negative numbers
+                if (operation === '-' && num2 > num1) {
+                    [num1, num2] = [num2, num1];
+                }
+            }
+            
+            question = `${num1} ${operation} ${num2} = ?`;
+            answer = operation === '+' ? num1 + num2 : num1 - num2;
+            
+            currentProblem = { question, answer };
+            problemDisplay.textContent = question;
+        }
+        
+        // Start game function
+        function startGame() {
+            // Reset game variables
+            gameState = 'playing';
+            score = 0;
+            timeLeft = 60;
+            carPosition = 0;
+            
+            // Update UI
+            scoreDisplay.textContent = score;
+            timeDisplay.textContent = timeLeft;
+            feedbackDisplay.textContent = '';
+            answerInput.value = '';
+            carElement.style.left = '0%';
+            
+            // Show game screen
+            startScreen.classList.remove('active');
+            gameScreen.classList.add('active');
+            endScreen.classList.remove('active');
+            
+            // Generate first problem
+            generateProblem();
+            
+            // Focus on answer input
+            answerInput.focus();
+            
+            // Start timer
+            timer = setInterval(updateTimer, 1000);
+        }
+        
+        // Submit answer function
+        function submitAnswer() {
+            const userAnswer = parseInt(answerInput.value.trim());
+            
+            // Check if input is empty
+            if (isNaN(userAnswer)) {
+                return;
+            }
+            
+            if (userAnswer === currentProblem.answer) {
+                // Correct answer
+                score++;
+                scoreDisplay.textContent = score;
+                feedbackDisplay.textContent = 'Correct! 🎉';
+                feedbackDisplay.className = 'feedback correct';
+                
+                // Move car
+                carPosition += 10;
+                if (carPosition > 100) carPosition = 100;
+                carElement.style.left = carPosition + '%';
+                
+                // Generate new problem
+                generateProblem();
+                answerInput.value = '';
+            } else {
+                // Incorrect answer
+                feedbackDisplay.textContent = 'Try again! 🤔';
+                feedbackDisplay.className = 'feedback incorrect';
+            }
+            
+            // Focus on answer input
+            answerInput.focus();
+        }
+        
+        // Update timer function
+        function updateTimer() {
+            timeLeft--;
+            timeDisplay.textContent = timeLeft;
+            
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+        
+        // End game function
+        function endGame() {
+            // Clear timer
+            clearInterval(timer);
+            
+            // Update gameState
+            gameState = 'end';
+            
+            // Update UI
+            finalScoreDisplay.textContent = score;
+            
+            // Set message based on score
+            if (score > 10) {
+                messageDisplay.textContent = 'Amazing job! You\'re a math superstar! ⭐';
+                messageDisplay.style.color = '#4caf50';
+            } else if (score > 5) {
+                messageDisplay.textContent = 'Great work! Keep practicing! 👍';
+                messageDisplay.style.color = '#4a6bff';
+            } else {
+                messageDisplay.textContent = 'Good try! You\'ll get better with practice! 😊';
+                messageDisplay.style.color = '#9c27b0';
+            }
+            
+            // Show end screen
+            gameScreen.classList.remove('active');
+            endScreen.classList.add('active');
+        }
+    </script>
+</body>
+</html>
